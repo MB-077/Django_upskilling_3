@@ -1,2 +1,3 @@
-# Django_upskilling_3
-Learning Django through a Udemy Course 
+This is inlined to the course on Udemy : Build REST APIs with Django REST Framework and Python
+
+
