@@ -17,6 +17,8 @@ class WatchList(models.Model):
     storyline = models.CharField(max_length=200)
     platform = models.ForeignKey(StreamPlatform, on_delete=models.CASCADE, related_name='watchlist')
     active = models.BooleanField(default=True)
+    avg_rating = models.FloatField(default=0)
+    number_rating = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -32,7 +34,7 @@ class Review(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.rating} stars given to {self.watchlist.title}"
+        return f"{self.rating} stars given to {self.watchlist.title} by {self.review_user.username}"
 
 # V1
 # class Movie(models.Model):
