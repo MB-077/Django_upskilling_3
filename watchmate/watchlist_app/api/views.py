@@ -7,15 +7,33 @@ from rest_framework import mixins
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle, ScopedRateThrottle
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from ..models import *
 from ..api.serializers import *
 from django.shortcuts import get_object_or_404
 from .permissions import *
+from .throttling import *
+from .pagination import *
+
+class UserReview(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    
+    # def get_queryset(self):
+    #     username = self.kwargs['username']
+    #     return Review.objects.filter(review_user__username=username)
+    
+    def get_queryset(self):
+        username = self.request.query_params.get('username', None)
+        return Review.objects.filter(review_user__username=username)
+
 
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReviewCreateThrottle]
     
     def get_queryset(self):
         pk = self.kwargs.get('pk')
@@ -45,6 +63,10 @@ class ReviewList(generics.ListAPIView):
     # queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     # permission_classes = [IsAuthenticated]
+    # throttle_classes = [AnonRateThrottle, UserRateThrottle] # for basic level throttling 
+    throttle_classes = [AnonRateThrottle, ReviewListThrottle] # for custom level throttling
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['review_user__username', 'active']
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -55,6 +77,9 @@ class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsReviewUserOrReadOnly]
+    # throttle_classes = [AnonRateThrottle, UserRateThrottle] # for basic level throttling
+    throttle_classes = [ScopedRateThrottle] # for custom level throttling
+    throttle_scope = 'review-detail'
 
 
 class StreamPlatformVS(viewsets.ModelViewSet):
@@ -62,6 +87,24 @@ class StreamPlatformVS(viewsets.ModelViewSet):
     serializer_class = StreamPlatformSerializer
     permission_classes = [IsAdminOrReadOnly]
     
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    # pagination_class = WatchListPagination
+    pagination_class = WatchListLOPagination
+    # pagination_class = WatchListCPagination
+    
+    
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['title', 'platform__name', 'active']
+    
+    # filter_backends = [filters.SearchFilter]
+    # search_fields = ['title', 'platform__name']
+    
+    # needs to be commented out for WatchListCPagination pagination
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['avg_rating']
 
 class WatchListAV(APIView):
     permission_classes = [IsAdminOrReadOnly]
